@@ -22,7 +22,11 @@ download first. Cut the download and the flash never happens.
    read-only `/etc/hosts`, sending the update hosts to `127.0.0.1`:
    - `aa8u5ipzaqyfu-ats.iot.eu-west-1.amazonaws.com` (AWS IoT MQTT push)
    - `s3-eu-west-1.amazonaws.com`, `vstlupdate.s3-…`, `qaupdate.s3-…`
-   - the `*.fxm6413857471.com` fallback hosts embedded in aurora
+   - **`d20j11dfuewm3u.cloudfront.net` / `d1jf4g5z1kouka.cloudfront.net`** —
+     the `SWUPDATE_URL` / `SWUPDATE_TEST_URL` from `PortalUrlItem` in
+     `settingsDB.db` (found 2026-11-16; these are the actual firmware CDN)
+   - the `*.fxm6413857471.com` and `*.fxm9485766783.com` fallback hosts
+     embedded in aurora / stored in `PortalUrlItem`
 2. **iptables backstop** — resolves those names with an external DNS server and
    adds `OUTPUT … REJECT` rules for their IPs (catches hardcoded-IP calls).
 3. **Deny the pending version** — writes `/conf/ftpUpdateVersionFile.txt`'s
@@ -72,26 +76,19 @@ Removes the payload hook (a backup of the original is at
 iptables rules it created, removes the deny-version file, and deletes
 `/conf/ota-killer`.
 
-## Optional, manual: disable `auto_update` in the settings DB
+## Settings-DB status (verified 2026-11-16)
 
-The network block already stops HTTP/IoT OTA (including forced web updates).
-The one vector it cannot reach is **DVB broadcast SSU**. That is gated by
-`Settings.m_auto_upgrade_on` in `/conf/sqlite_db/settingsDB.db`. There is no
-`sqlite3` binary on the TV, so this step is deliberately manual:
+Full analysis in [`SETTINGS_DB_ANALYSIS.md`](../../../SETTINGS_DB_ANALYSIS.md).
 
-```sh
-# TV: stream the DB to the PC
-nc -l -p 9101 > settingsDB.db      # PC
-dd if=/conf/sqlite_db/settingsDB.db bs=65536 | nc <pc-ip> 9101   # TV
-# PC
-python3 -c "import sqlite3;c=sqlite3.connect('settingsDB.db');c.execute('UPDATE Settings SET m_auto_upgrade_on=0');c.commit()"
-# TV: stream the patched DB back, then reboot
-nc -l -p 9102 < settingsDB.db      # PC (or: cat settingsDB.db | nc <tv-ip> 9102)
-nc <pc-ip> 9102 > /conf/sqlite_db/settingsDB.db   # TV
-```
-
-Keep a copy of the original DB. This is optional — do it only if you watch
-DVB-T/C/S and see SSU-triggered update prompts.
+- `Settings.m_auto_upgrade_on = 0` **already** — periodic auto-update search is
+  off; no DB patch is needed for that. (It was also 0 in the Nov 11 backup.)
+- `m_USB_update_count` went 1 → 2 between the Nov 11 backup and now, while
+  `m_http_update_count` stayed at 2 — i.e. the recent `UPGRADE` wake reasons
+  are our own USB activity, not vendor HTTP pushes.
+- The DB does contain the two CloudFront **SWUPDATE URLs**, now blocked above.
+- DVB broadcast SSU remains the only network-independent vector; if you ever
+  see SSU prompts, set `m_auto_upgrade_on = 0` (already the case here) and deny
+  the offered version via `deny-version.txt`.
 
 ## Notes / limitations
 

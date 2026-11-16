@@ -39,10 +39,13 @@ BLOCKED_DEFAULT="aa8u5ipzaqyfu-ats.iot.eu-west-1.amazonaws.com
 s3-eu-west-1.amazonaws.com
 vstlupdate.s3-eu-west-1.amazonaws.com
 qaupdate.s3-eu-west-1.amazonaws.com
+d20j11dfuewm3u.cloudfront.net
+d1jf4g5z1kouka.cloudfront.net
 1471772688.fxm6413857471.com
 3746622301.fxm6413857471.com
 8731299261.fxm6413857471.com
-9243217522.fxm6413857471.com"
+9243217522.fxm6413857471.com
+7345023508.fxm9485766783.com"
 
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo t)" "$*" >> "$LOG_FILE" 2>/dev/null; }
 say() { printf '%s\n' "$*"; }
